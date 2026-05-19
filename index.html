@@ -37,6 +37,17 @@
             40% { transform: scale(1); }
         }
 
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+
         /* --- PRINT STYLES --- */
         @media print {
             body {
@@ -51,6 +62,8 @@
             #ai-modal, 
             #confirm-modal, 
             #summary-modal button, 
+            #settings-modal,
+            #maintenance-modal,
             .no-print, 
             #btn-print-float, 
             #current-time-marker, 
@@ -174,7 +187,7 @@
                     <i data-lucide="map" class="w-6 h-6"></i>
                     Agenda Inteligente
                 </h1>
-                <p class="text-xs text-indigo-200">Planificador con Tiempos Reales</p>
+                <p class="text-xs text-indigo-200">Planificador Universal de Parques</p>
             </div>
             
             <div class="flex gap-2 items-center">
@@ -195,6 +208,10 @@
                     <i data-lucide="settings" class="w-5 h-5"></i>
                 </button>
 
+                <button onclick="toggleMaintenanceModal()" class="bg-teal-700 hover:bg-teal-600 text-white p-2 rounded-lg transition-colors shadow-md" title="Mantenimiento de Atracciones">
+                    <i data-lucide="wrench" class="w-5 h-5"></i>
+                </button>
+
                 <button onclick="printTimeline()" class="bg-indigo-700 hover:bg-indigo-600 text-white p-2 rounded-lg transition-colors shadow-md" title="Imprimir Línea de Tiempo">
                     <i data-lucide="printer" class="w-5 h-5"></i>
                 </button>
@@ -213,20 +230,20 @@
                 <div class="flex items-start gap-3 flex-1">
                     <i data-lucide="footprints" class="w-5 h-5 shrink-0 mt-0.5 text-blue-600"></i>
                     <div>
-                        <strong>Cálculo de Rutas:</strong> <span id="status-text" class="font-bold">Caminatas + 15 min de cola</span>.
+                        <strong>Cálculo de Rutas:</strong> <span id="status-text" class="font-bold">Caminatas + Colas / Puertas</span>.
                         <div class="text-xs opacity-80 mt-0.5">Las sesiones imposibles se marcan en rojo (clic para forzar).</div>
                     </div>
                 </div>
                 
-                <div class="flex flex-wrap gap-2 shrink-0">
-                    <label class="inline-flex items-center cursor-pointer select-none bg-white px-3 py-1.5 rounded-full border border-blue-200 shadow-sm hover:bg-blue-50 transition-colors">
+                <div class="flex flex-wrap gap-2 shrink-0 items-center">
+                    <label class="inline-flex items-center cursor-pointer select-none bg-white px-3 py-1.5 rounded-full border border-blue-200 shadow-sm hover:bg-blue-50 transition-colors h-9">
                         <span class="mr-2 text-xs font-bold text-blue-700">Caminatas</span>
                         <input type="checkbox" id="walk-toggle" class="sr-only peer" checked onchange="toggleConstraints()">
                         <div class="relative w-9 h-5 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
 
-                    <label class="inline-flex items-center cursor-pointer select-none bg-white px-3 py-1.5 rounded-full border border-blue-200 shadow-sm hover:bg-blue-50 transition-colors">
-                        <span class="mr-2 text-xs font-bold text-blue-700">Colas</span>
+                    <label class="inline-flex items-center cursor-pointer select-none bg-white px-3 py-1.5 rounded-full border border-blue-200 shadow-sm hover:bg-blue-50 transition-colors h-9">
+                        <span class="mr-2 text-xs font-bold text-blue-700">Colas y Puertas</span>
                         <input type="checkbox" id="queue-toggle" class="sr-only peer" checked onchange="toggleConstraints()">
                         <div class="relative w-9 h-5 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
@@ -261,11 +278,13 @@
         </div>
     </main>
 
-    <div id="confirm-modal" class="fixed inset-0 bg-black/50 z-[60] hidden backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-sm px-4"></div>
+
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 z-[90] hidden backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 animate-[scaleIn_0.2s_ease-out]">
             <div class="flex items-center gap-3 text-amber-600 mb-4">
                 <div class="bg-amber-100 p-2 rounded-full"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
-                <h3 class="font-bold text-lg text-slate-800">¿Forzar horario?</h3>
+                <h3 id="confirm-title" class="font-bold text-lg text-slate-800">¿Forzar horario?</h3>
             </div>
             <p class="text-sm text-slate-600 mb-4 leading-relaxed" id="confirm-reason"></p>
             <div class="flex gap-3 justify-end">
@@ -318,12 +337,13 @@
                 </div>
             </div>
             <div id="ai-chat" class="flex-1 flex flex-col hidden h-full bg-slate-50">
-                <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll"><div class="flex items-start gap-3"><div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shrink-0"><i data-lucide="bot" class="w-4 h-4"></i></div><div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%]">¡Saludos viajero! Soy el Juglar Virtual. Pregúntame lo que quieras.</div></div></div>
+                <div id="chat-history" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll"><div class="flex items-start gap-3"><div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shrink-0"><i data-lucide="bot" class="w-4 h-4"></i></div><div class="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none text-sm text-slate-700 shadow-sm max-w-[85%]">¡Saludos viajero! Soy el Asistente Virtual. Pregúntame lo que quieras sobre el parque.</div></div></div>
                 <div class="p-3 bg-white border-t border-slate-200 shrink-0"><div class="relative flex items-center gap-2"><input type="text" id="chat-input" class="flex-1 bg-slate-100 border-0 rounded-full py-2.5 px-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none" placeholder="Escribe tu pregunta aquí..." onkeypress="handleChatKey(event)"><button onclick="sendChatMessage()" id="btn-send-chat" class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"><i data-lucide="send" class="w-4 h-4 ml-0.5"></i></button></div></div>
             </div>
         </div>
     </div>
 
+    <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="fixed inset-0 bg-black/50 z-[80] hidden backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-[scaleIn_0.2s_ease-out] max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
@@ -332,8 +352,29 @@
             </div>
             
             <div class="mb-6">
+                <h4 class="font-bold text-slate-700 mb-2 flex items-center gap-2"><i data-lucide="timer" class="w-4 h-4"></i> Tiempos Globales por Defecto</h4>
+                <p class="text-xs text-slate-500 mb-4">Se aplicarán a las atracciones que no tengan un tiempo específico definido en el JSON.</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" title="Minutos que debes llegar antes de que comience el espectáculo para que te dejen entrar.">Cierre de puertas <i data-lucide="info" class="w-3 h-3 inline text-slate-400 cursor-help"></i></label>
+                        <div class="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500">
+                            <input type="number" id="global-door-time" min="0" value="10" class="w-full text-sm p-2 bg-transparent outline-none" onchange="updateGlobalTimes()">
+                            <span class="text-xs text-slate-500 pr-2">min</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1" title="Minutos estimados que pasarás esperando en la cola.">Espera en cola <i data-lucide="info" class="w-3 h-3 inline text-slate-400 cursor-help"></i></label>
+                        <div class="flex items-center border border-slate-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-500">
+                            <input type="number" id="global-queue-time" min="0" value="15" class="w-full text-sm p-2 bg-transparent outline-none" onchange="updateGlobalTimes()">
+                            <span class="text-xs text-slate-500 pr-2">min</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 pt-6 mb-6">
                 <h4 class="font-bold text-slate-700 mb-2 flex items-center gap-2"><i data-lucide="key" class="w-4 h-4"></i> Asistente de IA (Gemini)</h4>
-                <p class="text-xs text-slate-500 mb-2">Añade tu API Key para habilitar el Juglar Virtual y el Organizador Mágico. Se guarda en tu navegador.</p>
+                <p class="text-xs text-slate-500 mb-2">Añade tu API Key para habilitar el Juglar Virtual y el Organizador Mágico.</p>
                 <div class="flex gap-2">
                     <input type="password" id="api-key-input" placeholder="AIzaSy..." class="flex-1 text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
                     <button onclick="saveApiKey()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm">Guardar</button>
@@ -343,14 +384,14 @@
 
             <div class="border-t border-slate-200 pt-6 mb-6">
                 <h4 class="font-bold text-slate-700 mb-2 flex items-center gap-2"><i data-lucide="share-2" class="w-4 h-4"></i> Compartir Itinerario</h4>
-                <p class="text-xs text-slate-500 mb-4">Descarga tu plan actual para enviarlo a tus amigos (por WhatsApp/Email) o cargarlo en otro dispositivo.</p>
-                <div class="grid grid-cols-2 gap-3">
-                    <button onclick="exportItinerary()" class="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-300 shadow-sm">
+                <p class="text-xs text-slate-500 mb-4">Exporta tu plan actual para enviarlo a un amigo, o importa uno recibido.</p>
+                <div class="flex gap-3">
+                    <button onclick="exportItinerary()" class="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-300 shadow-sm">
                         <i data-lucide="download" class="w-4 h-4"></i> Exportar
                     </button>
-                    <label class="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-300 shadow-sm cursor-pointer">
+                    <label class="flex-1 flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-indigo-200 shadow-sm cursor-pointer">
                         <i data-lucide="upload" class="w-4 h-4"></i> Importar
-                        <input type="file" id="import-itinerary-file" accept=".json" class="hidden" onchange="importItinerary(event)">
+                        <input type="file" accept=".json" class="hidden" onchange="importItinerary(event)">
                     </label>
                 </div>
             </div>
@@ -373,10 +414,129 @@
         </div>
     </div>
 
+    <!-- MAINTENANCE MODAL -->
+    <div id="maintenance-modal" class="fixed inset-0 bg-black/50 z-[80] hidden backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full h-[90vh] flex flex-col animate-[scaleIn_0.2s_ease-out] overflow-hidden">
+            <div class="bg-teal-700 text-white p-4 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-xl flex items-center gap-2"><i data-lucide="wrench" class="w-6 h-6"></i> Gestor de Atracciones</h3>
+                <button onclick="toggleMaintenanceModal()" class="text-white/80 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-0 bg-slate-50 relative">
+                <!-- LIST VIEW -->
+                <div id="maint-list-view" class="p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                        <p class="text-sm text-slate-600">Añade, edita o elimina atracciones y espectáculos.</p>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button onclick="exportShowsJson()" class="flex-1 sm:flex-none justify-center bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-1" title="Descargar listado actual">
+                                <i data-lucide="download" class="w-4 h-4"></i> Exportar JSON
+                            </button>
+                            <button onclick="openEditShow(-1)" class="flex-1 sm:flex-none justify-center bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded-lg text-sm font-bold shadow-md transition-colors flex items-center gap-1">
+                                <i data-lucide="plus" class="w-4 h-4"></i> Nueva Atracción
+                            </button>
+                        </div>
+                    </div>
+                    <div id="maintenance-list" class="space-y-2"></div>
+                </div>
+
+                <!-- EDIT VIEW -->
+                <div id="maint-edit-view" class="hidden p-6">
+                    <div class="flex items-center gap-2 mb-6">
+                        <button onclick="cancelEditShow()" class="text-slate-500 hover:text-slate-800"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                        <h4 class="font-bold text-lg text-slate-800" id="maint-edit-title">Editar Atracción</h4>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- LEFT COL: Info -->
+                        <div class="space-y-4">
+                            <h5 class="font-bold text-sm text-slate-700 border-b pb-1"><i data-lucide="info" class="inline w-4 h-4 text-teal-600"></i> Información Básica</h5>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Nombre</label>
+                                <input type="text" id="edit-show-name" placeholder="Ej: Montaña Rusa" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Zona (Ej: Oeste)</label>
+                                    <input type="text" id="edit-show-locname" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">ID Único (Ej: oeste)</label>
+                                    <input type="text" id="edit-show-locid" placeholder="Autogenerado si vacío" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Link Google Maps (Opcional)</label>
+                                <input type="text" id="edit-show-maps" placeholder="https://maps..." class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                            </div>
+
+                            <h5 class="font-bold text-sm text-slate-700 border-b pb-1 mt-6"><i data-lucide="clock" class="inline w-4 h-4 text-teal-600"></i> Horarios</h5>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Tipo de Actividad</label>
+                                <select id="edit-show-type" onchange="toggleEditTypeFields()" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                                    <option value="fixed">Espectáculo Fijo (Pases concretos)</option>
+                                    <option value="continuous">Atracción Continua (Ininterrumpida)</option>
+                                    <option value="special">Evento Especial (Desfile final)</option>
+                                </select>
+                            </div>
+                            
+                            <div id="edit-fixed-fields">
+                                <label class="block text-xs font-semibold text-slate-500 mb-1">Horas de los Pases (Separadas por comas)</label>
+                                <input type="text" id="edit-show-times" placeholder="Ej: 12:00, 14:30, 18:00" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                            </div>
+
+                            <div id="edit-continuous-fields" class="grid grid-cols-2 gap-3 hidden">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Hora de Apertura</label>
+                                    <input type="time" id="edit-show-start" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1">Hora de Cierre</label>
+                                    <input type="time" id="edit-show-end" class="w-full text-sm p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RIGHT COL: Logistics -->
+                        <div class="space-y-4">
+                            <h5 class="font-bold text-sm text-slate-700 border-b pb-1"><i data-lucide="timer" class="inline w-4 h-4 text-teal-600"></i> Duración y Tiempos</h5>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-500 mb-1" title="Tiempo de la experiencia completa">Duración</label>
+                                    <input type="number" id="edit-show-duration" value="30" class="w-full text-sm p-2 border border-slate-300 rounded-lg outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-amber-600 mb-1" title="Si se deja vacío, usará el global">Cola Específica</label>
+                                    <input type="number" id="edit-show-queue" placeholder="Global" class="w-full text-sm p-2 border border-amber-300 rounded-lg bg-amber-50 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-amber-600 mb-1" title="Si se deja vacío, usará el global">Cierre Puertas</label>
+                                    <input type="number" id="edit-show-door" placeholder="Global" class="w-full text-sm p-2 border border-amber-300 rounded-lg bg-amber-50 outline-none">
+                                </div>
+                            </div>
+
+                            <h5 class="font-bold text-sm text-slate-700 border-b pb-1 mt-6"><i data-lucide="map" class="inline w-4 h-4 text-teal-600"></i> Distancias (Minutos a pie)</h5>
+                            <p class="text-[10px] text-slate-500 leading-tight">Configura cuánto se tarda caminando desde esta atracción a las demás zonas. El sistema calculará el camino inverso automáticamente.</p>
+                            <div id="edit-distances-container" class="space-y-1 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                <!-- Distances injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER ACTIOS -->
+            <div id="maint-footer" class="p-4 bg-white border-t border-slate-200 hidden shrink-0 flex justify-end gap-3">
+                <button onclick="cancelEditShow()" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">Cancelar</button>
+                <button onclick="saveShow()" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-md transition-colors"><i data-lucide="save" class="w-4 h-4 inline mr-1"></i> Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- CONSTANTS ---
         let apiKey = localStorage.getItem('puydufou_apikey') || ""; 
-        const BUFFER_QUEUE = 15;
+        let currentParkName = localStorage.getItem('park_name') || "Puy du Fou España";
         const METERS_PER_MIN = 70;
         const START_HOUR = 10;
         const END_HOUR = 23; 
@@ -411,13 +571,12 @@
         let shows = [];
         try {
             const savedShows = localStorage.getItem('puydufou_shows');
-            shows = savedShows ? JSON.parse(savedShows) : [...defaultShows];
+            shows = savedShows ? JSON.parse(savedShows) : JSON.parse(JSON.stringify(defaultShows));
         } catch(e) {
-            shows = [...defaultShows];
+            shows = JSON.parse(JSON.stringify(defaultShows));
         }
 
-        // Adjusted walking matrix to reflect the proximity of Ocean (Puebla Real) to Vivar and Comedia, and the actual layout.
-        const walkingMatrix = {
+        const defaultWalkingMatrix = {
             [LOC.ENTRANCE]: { [LOC.VIVAR]: 6,  [LOC.COMEDIA]: 8,  [LOC.OCEAN]: 7, [LOC.SORBACES]: 10, [LOC.ASKAR]: 15, [LOC.TAMBOR]: 12, [LOC.PALO]: 10, [LOC.CORTEJO]: 0, [LOC.SUENO]: 5 },
             [LOC.VIVAR]:    { [LOC.ENTRANCE]: 6, [LOC.COMEDIA]: 6,  [LOC.OCEAN]: 4, [LOC.SORBACES]: 12, [LOC.ASKAR]: 16, [LOC.TAMBOR]: 14, [LOC.PALO]: 8,  [LOC.CORTEJO]: 5, [LOC.SUENO]: 8 },
             [LOC.COMEDIA]:  { [LOC.ENTRANCE]: 8, [LOC.VIVAR]: 6,  [LOC.OCEAN]: 5, [LOC.SORBACES]: 8,  [LOC.ASKAR]: 12, [LOC.TAMBOR]: 10, [LOC.PALO]: 5,  [LOC.CORTEJO]: 8, [LOC.SUENO]: 10 },
@@ -430,10 +589,28 @@
             [LOC.SUENO]:    { [LOC.ENTRANCE]: 5, [LOC.VIVAR]: 8, [LOC.COMEDIA]: 10, [LOC.OCEAN]: 9, [LOC.SORBACES]: 14, [LOC.ASKAR]: 20, [LOC.TAMBOR]: 16, [LOC.PALO]: 12, [LOC.CORTEJO]: 5 }
         };
 
+        let walkingMatrix = {};
+
+        function buildWalkingMatrix() {
+            // 1. Clonamos la matriz por defecto como base de seguridad
+            walkingMatrix = JSON.parse(JSON.stringify(defaultWalkingMatrix));
+            
+            // 2. Si alguna atracción tiene distancias, las fusionamos (merge) sobre la base
+            shows.forEach(show => {
+                if (show.distances) {
+                    walkingMatrix[show.locationId] = { ...(walkingMatrix[show.locationId] || {}), ...show.distances };
+                }
+            });
+        }
+        
+        buildWalkingMatrix();
+
         // --- STATE ---
         let selectedSessionsList = [];
         let includeQueue = true;
         let includeWalk = true;
+        let globalQueueTime = 15;
+        let globalDoorCloseTime = 10;
         let pendingForceAction = null;
 
         // --- API FUNCTIONS ---
@@ -477,17 +654,17 @@
                 .map(s => `${formatTime(s.start)} - ${s.name} (${s.locationName})`)
                 .join('\n');
 
-            const prompt = `Actúa como un guía experto de Puy du Fou España.
+            const prompt = `Actúa como un guía experto de ${currentParkName}.
             Analiza este itinerario que ha creado el usuario:
             ${schedule}
             
             Danos una opinión breve y constructiva (máx 100 palabras) sobre:
             1. Si el ritmo es bueno o muy acelerado.
-            2. Si se pierde algún espectáculo imprescindible (El Sueño de Toledo, A Pluma y Espada, etc.).
+            2. Si se pierde alguna atracción/espectáculo imprescindible.
             3. Una sugerencia rápida de dónde/cuándo comer según los huecos libres.
-            Usa emojis y tono medieval/amigable.`;
+            Usa emojis y un tono amigable acorde a la temática del parque.`;
 
-            const response = await callGemini(prompt, "Eres un asistente útil y temático de Puy du Fou.");
+            const response = await callGemini(prompt, `Eres un asistente útil y temático en ${currentParkName}.`);
 
             container.innerHTML = marked.parse(response);
             btn.disabled = false;
@@ -508,9 +685,9 @@
             const departure = document.getElementById('departure-time').value;
             const prefs = document.getElementById('planner-prefs').value;
             
-            const prompt = `Crea itinerario Puy du Fou de ${arrival} a ${departure}. Preferencias: ${prefs}. Usa los shows: ${JSON.stringify(shows.map(s=>({name:s.name, times: s.times||[s.start]})))}. Ten en cuenta tiempos de caminata.`;
+            const prompt = `Crea un itinerario para ${currentParkName} de ${arrival} a ${departure}. Preferencias: ${prefs}. Usa los shows/atracciones: ${JSON.stringify(shows.map(s=>({name:s.name, times: s.times||[s.start]})))}. Ten en cuenta tiempos de caminata.`;
             
-            const txt = await callGemini(prompt, "Eres un experto planificador.");
+            const txt = await callGemini(prompt, "Eres un experto planificador de parques temáticos.");
             
             contentDiv.innerHTML = marked.parse(txt);
             loadingDiv.classList.add('hidden');
@@ -530,9 +707,9 @@
             btn.disabled = true;
             const loadingId = appendLoadingBubble();
 
-            const systemPrompt = `Eres "El Juglar del Parque", un asistente servicial y temático para Puy du Fou.
-            Habla con un tono ligeramente antiguo pero claro y amable.
-            Usa SOLO la siguiente información para responder preguntas sobre horarios y shows:
+            const systemPrompt = `Eres el "Asistente del Parque", un guía virtual servicial y experto en ${currentParkName}.
+            Habla de forma clara, amigable y acorde a la temática del parque.
+            Usa SOLO la siguiente información para responder preguntas sobre horarios y atracciones:
             ${JSON.stringify(shows)}
             Si te preguntan algo fuera de este contexto, responde con ingenio que tu conocimiento se limita a los muros de este parque.
             Sé conciso.`;
@@ -551,7 +728,9 @@
             const state = {
                 selectedSessionsList,
                 includeQueue,
-                includeWalk
+                includeWalk,
+                globalQueueTime,
+                globalDoorCloseTime
             };
             localStorage.setItem('puydufou_planner_state', JSON.stringify(state));
         }
@@ -564,10 +743,17 @@
                     if (parsedState.selectedSessionsList) selectedSessionsList = parsedState.selectedSessionsList;
                     if (typeof parsedState.includeQueue === 'boolean') includeQueue = parsedState.includeQueue;
                     if (typeof parsedState.includeWalk === 'boolean') includeWalk = parsedState.includeWalk;
+                    if (typeof parsedState.globalQueueTime === 'number') globalQueueTime = parsedState.globalQueueTime;
+                    if (typeof parsedState.globalDoorCloseTime === 'number') globalDoorCloseTime = parsedState.globalDoorCloseTime;
                 } catch (e) {
                     console.error("Error cargando el estado", e);
                 }
             }
+            
+            const qInput = document.getElementById('global-queue-time');
+            const dInput = document.getElementById('global-door-time');
+            if (qInput) qInput.value = globalQueueTime;
+            if (dInput) dInput.value = globalDoorCloseTime;
         }
 
         function timeToDecimal(timeStr) {
@@ -585,7 +771,7 @@
         function getMapsLink(showName, locationName) {
             const show = shows.find(s => s.name === showName);
             if (show && show.mapsLink) return show.mapsLink;
-            const query = encodeURIComponent(`Puy du Fou España ${locationName}`);
+            const query = encodeURIComponent(`${currentParkName} ${locationName}`);
             return `https://www.google.com/maps/search/?api=1&query=${query}`;
         }
 
@@ -617,7 +803,14 @@
         
         function getWalkTime(fromId, toId) {
             if (fromId === toId) return 0;
-            try { return walkingMatrix[fromId][toId] || 15; } catch(e) { return 15; }
+            try { 
+                // Busca la distancia de ida
+                if (walkingMatrix[fromId] && walkingMatrix[fromId][toId] !== undefined) return walkingMatrix[fromId][toId];
+                // Si no existe, busca la distancia de vuelta automáticamente (es simétrico)
+                if (walkingMatrix[toId] && walkingMatrix[toId][fromId] !== undefined) return walkingMatrix[toId][fromId];
+                // Si falla todo, devuelve 15
+                return 15; 
+            } catch(e) { return 15; }
         }
 
         function generateSessionId(name, timeStr) {
@@ -658,81 +851,317 @@
             if (el) el.remove();
         }
 
-        // --- SETTINGS LOGIC ---
-        
-        function toggleSettingsModal() {
-            const modal = document.getElementById('settings-modal');
+        function showToast(message, isError = false) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white transform transition-all duration-300 translate-y-10 opacity-0 ${isError ? 'bg-red-600' : 'bg-green-600'} flex items-center gap-2 pointer-events-auto w-full mx-auto`;
+            toast.innerHTML = `<i data-lucide="${isError ? 'alert-circle' : 'check-circle'}" class="w-4 h-4 shrink-0"></i> <span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    toast.classList.remove('translate-y-10', 'opacity-0');
+                });
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // --- MAINTENANCE LOGIC ---
+        let editingShowIndex = -1;
+
+        function exportShowsJson() {
+            // Copia profunda para no modificar los objetos de la app en vivo
+            const showsToExport = JSON.parse(JSON.stringify(shows));
+            
+            // Recopilamos todas las ubicaciones únicas
+            const uniqueLocs = new Set(['entrance']);
+            showsToExport.forEach(s => uniqueLocs.add(s.locationId));
+
+            // Rellenar distancias faltantes usando la función de fallback del motor
+            showsToExport.forEach(show => {
+                if (!show.distances) show.distances = {};
+                uniqueLocs.forEach(targetLoc => {
+                    if (show.distances[targetLoc] === undefined) {
+                        show.distances[targetLoc] = getWalkTime(show.locationId, targetLoc);
+                    }
+                });
+            });
+
+            const data = {
+                parkName: currentParkName,
+                shows: showsToExport
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `atracciones-${currentParkName.replace(/\s+/g, '-').toLowerCase()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Atracciones exportadas con éxito.");
+        }
+
+        function toggleMaintenanceModal() {
+            const modal = document.getElementById('maintenance-modal');
             const isHidden = modal.classList.contains('hidden');
             if (isHidden) {
-                document.getElementById('api-key-input').value = apiKey;
-                document.getElementById('api-key-status').classList.add('hidden');
+                renderMaintenanceList();
+                document.getElementById('maint-list-view').classList.remove('hidden');
+                document.getElementById('maint-edit-view').classList.add('hidden');
+                document.getElementById('maint-footer').classList.add('hidden');
                 modal.classList.remove('hidden');
             } else {
                 modal.classList.add('hidden');
             }
         }
 
-        function exportItinerary() {
-            if (selectedSessionsList.length === 0) {
-                alert("Tu itinerario está vacío. Añade algunos espectáculos primero.");
-                return;
+        function renderMaintenanceList() {
+            const list = document.getElementById('maintenance-list');
+            list.innerHTML = '';
+            
+            if (shows.length === 0) {
+                list.innerHTML = '<p class="text-slate-500 text-sm italic py-4 text-center">No hay atracciones configuradas.</p>';
             }
-            const data = {
-                selectedSessionsList,
-                includeQueue,
-                includeWalk
-            };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "mi-itinerario-puydufou.json");
-            document.body.appendChild(downloadAnchorNode);
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+
+            shows.forEach((show, i) => {
+                const typeIcon = show.type === 'fixed' ? 'calendar' : (show.type === 'continuous' ? 'infinity' : 'star');
+                const badgeColor = show.type === 'fixed' ? 'bg-blue-100 text-blue-800' : (show.type === 'continuous' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800');
+                
+                list.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow transition-shadow group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${badgeColor}">
+                                <i data-lucide="${typeIcon}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-sm">${show.name}</h4>
+                                <div class="flex gap-2 text-xs text-slate-500">
+                                    <span><i data-lucide="map-pin" class="w-3 h-3 inline"></i> ${show.locationName}</span>
+                                    <span><i data-lucide="timer" class="w-3 h-3 inline"></i> ${show.duration}m</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                            <button onclick="openEditShow(${i})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                            <button onclick="deleteShowPrompt(${i})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+            lucide.createIcons();
         }
 
-        function importItinerary(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parsedData = JSON.parse(e.target.result);
-                    if (parsedData && Array.isArray(parsedData.selectedSessionsList)) {
-                        selectedSessionsList = parsedData.selectedSessionsList;
-                        if (typeof parsedData.includeQueue === 'boolean') includeQueue = parsedData.includeQueue;
-                        if (typeof parsedData.includeWalk === 'boolean') includeWalk = parsedData.includeWalk;
-                        
-                        // Sync checkboxes UI
-                        const queueCheckbox = document.getElementById('queue-toggle');
-                        const walkCheckbox = document.getElementById('walk-toggle');
-                        if (queueCheckbox) queueCheckbox.checked = includeQueue;
-                        if (walkCheckbox) walkCheckbox.checked = includeWalk;
-                        
-                        // Sync constraints text UI
-                        const statusText = document.getElementById('status-text');
-                        if(statusText) {
-                            let parts = [];
-                            if(includeWalk) parts.push("Caminatas");
-                            if(includeQueue) parts.push("15 min de cola");
-                            if(parts.length === 0) statusText.innerText = "Sin restricciones";
-                            else statusText.innerText = parts.join(" + ");
-                        }
+        function toggleEditTypeFields() {
+            const type = document.getElementById('edit-show-type').value;
+            const contFields = document.getElementById('edit-continuous-fields');
+            const fixedFields = document.getElementById('edit-fixed-fields');
+            
+            if (type === 'continuous') {
+                contFields.classList.remove('hidden');
+                fixedFields.classList.add('hidden');
+            } else {
+                contFields.classList.add('hidden');
+                fixedFields.classList.remove('hidden');
+            }
+        }
 
-                        saveState();
-                        renderAgenda();
-                        renderTimeline();
-                        alert("¡Itinerario importado con éxito!");
-                        toggleSettingsModal();
-                    } else {
-                        alert("Error: El archivo no parece contener un itinerario válido.");
-                    }
-                } catch (error) {
-                    alert("Error al leer el archivo. Verifica que sea un archivo de itinerario correcto.");
+        function openEditShow(index) {
+            editingShowIndex = index;
+            document.getElementById('maint-list-view').classList.add('hidden');
+            document.getElementById('maint-edit-view').classList.remove('hidden');
+            document.getElementById('maint-footer').classList.remove('hidden');
+
+            const isNew = index === -1;
+            document.getElementById('maint-edit-title').innerText = isNew ? "Nueva Atracción" : "Editar Atracción";
+            const show = isNew ? {} : shows[index];
+
+            document.getElementById('edit-show-name').value = show.name || '';
+            document.getElementById('edit-show-locname').value = show.locationName || '';
+            document.getElementById('edit-show-locid').value = show.locationId || '';
+            document.getElementById('edit-show-type').value = show.type || 'fixed';
+            document.getElementById('edit-show-duration').value = show.duration !== undefined ? show.duration : 30;
+            document.getElementById('edit-show-queue').value = show.queueTime !== undefined ? show.queueTime : '';
+            document.getElementById('edit-show-door').value = show.doorCloseTime !== undefined ? show.doorCloseTime : '';
+            document.getElementById('edit-show-maps').value = show.mapsLink || '';
+
+            if (show.type === 'continuous') {
+                document.getElementById('edit-show-start').value = show.start || '12:00';
+                document.getElementById('edit-show-end').value = show.end || '20:00';
+                document.getElementById('edit-show-times').value = '';
+            } else {
+                document.getElementById('edit-show-start').value = '12:00';
+                document.getElementById('edit-show-end').value = '20:00';
+                document.getElementById('edit-show-times').value = show.times ? show.times.join(', ') : '';
+            }
+
+            toggleEditTypeFields();
+            // Le pasamos explícitamente la ID actual para poder buscarla en la matriz
+            renderEditDistances(isNew ? null : show.distances, show.locationId);
+        }
+
+        function cancelEditShow() {
+            document.getElementById('maint-edit-view').classList.add('hidden');
+            document.getElementById('maint-footer').classList.add('hidden');
+            document.getElementById('maint-list-view').classList.remove('hidden');
+        }
+
+        function renderEditDistances(existingDistances, currentLocId) {
+            const container = document.getElementById('edit-distances-container');
+            container.innerHTML = '';
+            
+            const uniqueLocs = [{ id: 'entrance', name: 'Entrada del Parque' }];
+            const seenIds = new Set(['entrance']);
+            
+            shows.forEach(s => {
+                if(!seenIds.has(s.locationId)) {
+                    uniqueLocs.push({ id: s.locationId, name: s.locationName });
+                    seenIds.add(s.locationId);
                 }
-                event.target.value = ''; // Reset input
+            });
+
+            uniqueLocs.forEach(loc => {
+                let val = 15; // Fallback extremo
+                
+                if (existingDistances && existingDistances[loc.id] !== undefined) {
+                    // Si ya tenía la distancia grabada dentro de sí mismo
+                    val = existingDistances[loc.id];
+                } else if (currentLocId) {
+                    // Si no la tenía, la extrae de la matriz general que está corriendo en memoria
+                    val = getWalkTime(currentLocId, loc.id);
+                }
+                
+                container.innerHTML += `
+                    <div class="flex justify-between items-center bg-white p-2 rounded border border-slate-200">
+                        <span class="text-xs text-slate-700 font-medium truncate pr-2" title="${loc.id}">${loc.name} <span class="text-[10px] text-slate-400">(${loc.id})</span></span>
+                        <div class="flex items-center">
+                            <input type="number" min="0" class="distance-input w-16 text-xs text-center p-1 border border-slate-300 rounded focus:ring-1 focus:ring-teal-500 outline-none" data-locid="${loc.id}" value="${val}">
+                            <span class="text-xs text-slate-400 ml-1">min</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function saveShow() {
+            const type = document.getElementById('edit-show-type').value;
+            const name = document.getElementById('edit-show-name').value.trim();
+            const locName = document.getElementById('edit-show-locname').value.trim();
+            
+            if(!name || !locName) {
+                showToast("Por favor, rellena el nombre y la zona.", true);
+                return;
+            }
+
+            let locId = document.getElementById('edit-show-locid').value.trim();
+            if(!locId) {
+                locId = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, '_');
+            }
+
+            const newShow = {
+                name: name,
+                locationName: locName,
+                locationId: locId,
+                type: type,
+                duration: parseInt(document.getElementById('edit-show-duration').value) || 30,
             };
-            reader.readAsText(file);
+
+            const qTime = document.getElementById('edit-show-queue').value;
+            if(qTime !== "") newShow.queueTime = parseInt(qTime);
+            
+            const dTime = document.getElementById('edit-show-door').value;
+            if(dTime !== "") newShow.doorCloseTime = parseInt(dTime);
+
+            const mapsLink = document.getElementById('edit-show-maps').value.trim();
+            if(mapsLink) newShow.mapsLink = mapsLink;
+
+            if (type === 'continuous') {
+                newShow.start = document.getElementById('edit-show-start').value;
+                newShow.end = document.getElementById('edit-show-end').value;
+            } else {
+                const timesStr = document.getElementById('edit-show-times').value;
+                newShow.times = timesStr.split(',').map(s => s.trim()).filter(s => s.match(/^\d{2}:\d{2}$/));
+                if(newShow.times.length === 0) {
+                    showToast("Añade al menos una hora válida en formato 00:00", true);
+                    return;
+                }
+            }
+
+            const distances = {};
+            document.querySelectorAll('.distance-input').forEach(input => {
+                distances[input.dataset.locid] = parseInt(input.value) || 0;
+            });
+            distances[newShow.locationId] = 0; 
+            newShow.distances = distances;
+
+            if (editingShowIndex >= 0) {
+                shows[editingShowIndex] = newShow;
+            } else {
+                shows.push(newShow);
+            }
+
+            localStorage.setItem('puydufou_shows', JSON.stringify(shows));
+            selectedSessionsList = []; 
+            buildWalkingMatrix();
+            saveState();
+            renderAgenda();
+            renderTimeline();
+            
+            showToast("Atracción guardada con éxito");
+            cancelEditShow();
+            renderMaintenanceList();
+        }
+
+        function deleteShowPrompt(index) {
+            openConfirmModal("Eliminar atracción", `¿Seguro que quieres eliminar <strong>${shows[index].name}</strong>? Esta acción no se puede deshacer y vaciará el itinerario actual.`, "Eliminar", () => {
+                shows.splice(index, 1);
+                localStorage.setItem('puydufou_shows', JSON.stringify(shows));
+                selectedSessionsList = [];
+                buildWalkingMatrix();
+                saveState();
+                renderAgenda();
+                renderTimeline();
+                renderMaintenanceList();
+                showToast("Atracción eliminada");
+            });
+        }
+
+        // --- SETTINGS LOGIC ---
+        
+        function updateGlobalTimes() {
+            let qVal = parseInt(document.getElementById('global-queue-time').value);
+            let dVal = parseInt(document.getElementById('global-door-time').value);
+            
+            if (isNaN(qVal) || qVal < 0) qVal = 0;
+            if (isNaN(dVal) || dVal < 0) dVal = 0;
+            
+            globalQueueTime = qVal;
+            globalDoorCloseTime = dVal;
+            
+            saveState();
+            toggleConstraints(); 
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            const isHidden = modal.classList.contains('hidden');
+            if (isHidden) {
+                document.getElementById('api-key-input').value = apiKey;
+                document.getElementById('api-key-status').classList.add('hidden');
+                
+                document.getElementById('global-queue-time').value = globalQueueTime;
+                document.getElementById('global-door-time').value = globalDoorCloseTime;
+                
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
         }
 
         function saveApiKey() {
@@ -754,44 +1183,124 @@
             }
         }
 
+        function exportItinerary() {
+            const data = {
+                selectedSessionsList,
+                includeQueue,
+                includeWalk,
+                globalQueueTime,
+                globalDoorCloseTime
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `itinerario-${currentParkName.replace(/\s+/g, '-').toLowerCase()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importItinerary(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.selectedSessionsList) {
+                        selectedSessionsList = data.selectedSessionsList;
+                        includeQueue = data.includeQueue !== undefined ? data.includeQueue : true;
+                        includeWalk = data.includeWalk !== undefined ? data.includeWalk : true;
+                        
+                        if (data.globalQueueTime !== undefined) globalQueueTime = data.globalQueueTime;
+                        if (data.globalDoorCloseTime !== undefined) globalDoorCloseTime = data.globalDoorCloseTime;
+                        
+                        saveState(); 
+                        
+                        const queueCheckbox = document.getElementById('queue-toggle');
+                        const walkCheckbox = document.getElementById('walk-toggle');
+                        if (queueCheckbox) queueCheckbox.checked = includeQueue;
+                        if (walkCheckbox) walkCheckbox.checked = includeWalk;
+                        toggleConstraints(); 
+                        
+                        showToast("¡Itinerario cargado con éxito!");
+                        toggleSettingsModal();
+                    } else {
+                        showToast("Archivo no válido. Asegúrate de que es un itinerario exportado.", true);
+                    }
+                } catch (err) {
+                    showToast("Error al leer el archivo.", true);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; 
+        }
+
         function uploadShowsJson(event) {
             const file = event.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const parsedShows = JSON.parse(e.target.result);
-                    if (Array.isArray(parsedShows) && parsedShows.length > 0) {
-                        shows = parsedShows;
+                    const parsedData = JSON.parse(e.target.result);
+                    let newShows = Array.isArray(parsedData) ? parsedData : parsedData.shows;
+                    
+                    if (Array.isArray(newShows) && newShows.length > 0) {
+                        shows = newShows;
+                        
+                        if (parsedData.parkName) {
+                            currentParkName = parsedData.parkName;
+                            localStorage.setItem('park_name', currentParkName);
+                        } else if (Array.isArray(parsedData)) {
+                            currentParkName = "el parque temático";
+                            localStorage.setItem('park_name', currentParkName);
+                        }
+
                         localStorage.setItem('puydufou_shows', JSON.stringify(shows));
-                        selectedSessionsList = []; // Reiniciar itinerario
+                        selectedSessionsList = []; 
+                        buildWalkingMatrix(); 
                         saveState();
                         renderAgenda();
                         renderTimeline();
-                        alert("¡Horarios actualizados exitosamente! Tu itinerario se ha reiniciado.");
+                        showToast(`¡Datos de ${currentParkName} actualizados exitosamente! Tu itinerario se ha reiniciado.`);
                         toggleSettingsModal();
                     } else {
-                        alert("Error: El archivo JSON debe contener un listado (array) de espectáculos válido.");
+                        showToast("Error: El archivo JSON debe contener un listado (array) de atracciones válido.", true);
                     }
                 } catch (error) {
-                    alert("Error al leer el archivo JSON: Verifique que el formato sea correcto. " + error.message);
+                    showToast("Error al leer el archivo JSON: Verifique que el formato sea correcto. " + error.message, true);
                 }
-                event.target.value = ''; // Reset
+                event.target.value = ''; 
             };
             reader.readAsText(file);
         }
 
         function restoreDefaultShows() {
-            if(confirm("¿Estás seguro de restaurar los horarios de fábrica? Tu itinerario actual se borrará.")) {
-                shows = [...defaultShows];
-                localStorage.removeItem('puydufou_shows');
-                selectedSessionsList = [];
-                saveState();
-                renderAgenda();
-                renderTimeline();
-                toggleSettingsModal();
-                alert("Horarios restaurados por defecto exitosamente.");
-            }
+            openConfirmModal(
+                "¿Restaurar de fábrica?", 
+                "Esto borrará tu itinerario actual y cargará los horarios por defecto. ¿Estás seguro?", 
+                "Restaurar", 
+                () => {
+                    shows = JSON.parse(JSON.stringify(defaultShows));
+                    localStorage.removeItem('puydufou_shows');
+                    localStorage.removeItem('park_name');
+                    currentParkName = "Puy du Fou España";
+                    selectedSessionsList = [];
+                    
+                    const fileInput = document.getElementById('upload-shows-file');
+                    if (fileInput) fileInput.value = '';
+
+                    buildWalkingMatrix();
+                    saveState();
+                    renderAgenda();
+                    renderTimeline();
+                    toggleSettingsModal();
+                    
+                    showToast("Horarios restaurados por defecto exitosamente.");
+                }
+            );
         }
 
         // --- UI LOGIC ---
@@ -871,14 +1380,16 @@
             const walkCheckbox = document.getElementById('walk-toggle');
             includeQueue = queueCheckbox.checked;
             includeWalk = walkCheckbox.checked;
+            
             const statusText = document.getElementById('status-text');
             if(statusText) {
                 let parts = [];
                 if(includeWalk) parts.push("Caminatas");
-                if(includeQueue) parts.push("15 min de cola");
+                if(includeQueue) parts.push("Colas / Puertas");
                 if(parts.length === 0) statusText.innerText = "Sin restricciones";
                 else statusText.innerText = parts.join(" + ");
             }
+            
             saveState();
             renderAgenda();
             renderTimeline();
@@ -894,7 +1405,7 @@
             if (!conflict) {
                 toggleSession(id, name, start, duration, locId, false);
             } else {
-                openConfirmModal(conflict, () => {
+                openConfirmModal("¿Forzar horario?", conflict, "Sí, correré", () => {
                     toggleSession(id, name, start, duration, locId, true);
                 });
             }
@@ -924,22 +1435,41 @@
         
         function checkConflict(evt) {
             const evtEnd = evt.start + (evt.duration / 60);
+            
+            const targetShow = shows.find(s => s.name === evt.name);
+            const evtQueueTime = targetShow && targetShow.queueTime !== undefined ? targetShow.queueTime : globalQueueTime;
+            const evtDoorTime = targetShow && targetShow.doorCloseTime !== undefined ? targetShow.doorCloseTime : globalDoorCloseTime;
+            
             for (const session of selectedSessionsList) {
                 if (session.name === evt.name) continue;
+                
                 const walkMins = getWalkTime(session.locId, evt.locId);
                 const walkHours = includeWalk ? (walkMins / 60) : 0;
-                const queueHours = includeQueue ? (BUFFER_QUEUE / 60) : 0;
+                
                 if (evt.start >= session.end) {
+                    const queueHours = includeQueue ? (evtQueueTime / 60) : 0;
+                    const doorHours = includeQueue ? (evtDoorTime / 60) : 0;
+                    const neededGapHours = walkHours + queueHours + doorHours;
+                    const neededGapMins = Math.round(neededGapHours * 60);
+
                     const availableGap = evt.start - session.end;
-                    const neededGap = walkHours + queueHours;
-                    if (availableGap < neededGap) {
-                        return `No llegas desde <strong>${session.name}</strong>.<br>Hueco: ${Math.round(availableGap*60)}m. Necesitas: ${Math.round(neededGap*60)}m.`;
+                    if (availableGap < neededGapHours - 0.001) {
+                        return `No llegas desde <strong>${session.name}</strong>.<br>Hueco: ${Math.round(availableGap*60)}m. Necesitas: ${neededGapMins}m (caminata + cola/puerta).`;
                     }
                 } else if (session.start >= evtEnd) {
+                     const nextShow = shows.find(s => s.name === session.name);
+                     const nextQTime = nextShow && nextShow.queueTime !== undefined ? nextShow.queueTime : globalQueueTime;
+                     const nextDTime = nextShow && nextShow.doorCloseTime !== undefined ? nextShow.doorCloseTime : globalDoorCloseTime;
+                     
+                     const nextQueueHours = includeQueue ? (nextQTime / 60) : 0;
+                     const nextDoorHours = includeQueue ? (nextDTime / 60) : 0;
+                     
+                     const nextNeededGapHours = walkHours + nextQueueHours + nextDoorHours;
+                     const nextNeededGapMins = Math.round(nextNeededGapHours * 60);
+
                      const availableGap = session.start - evtEnd;
-                     const neededGap = walkHours + queueHours;
-                     if (availableGap < neededGap) {
-                         return `Te pisa la llegada a <strong>${session.name}</strong>.<br>Hueco: ${Math.round(availableGap*60)}m. Necesitas: ${Math.round(neededGap*60)}m.`;
+                     if (availableGap < nextNeededGapHours - 0.001) {
+                         return `Te pisa la llegada a <strong>${session.name}</strong>.<br>Hueco: ${Math.round(availableGap*60)}m. Necesitas: ${nextNeededGapMins}m (caminata + cola/puerta).`;
                      }
                 } else {
                     return `Se solapa directamente con <strong>${session.name}</strong>.`;
@@ -993,11 +1523,16 @@
             }
         }
 
-        function openConfirmModal(reason, onConfirm) {
+        function openConfirmModal(title, reason, confirmText, onConfirm) {
             const modal = document.getElementById('confirm-modal');
+            const titleEl = document.getElementById('confirm-title');
             const reasonText = document.getElementById('confirm-reason');
             const confirmBtn = document.getElementById('btn-force-confirm');
+            
+            if(titleEl) titleEl.innerText = title;
+            if(confirmBtn) confirmBtn.innerHTML = confirmText;
             reasonText.innerHTML = reason;
+            
             modal.classList.remove('hidden');
             const newBtn = confirmBtn.cloneNode(true);
             confirmBtn.parentNode.replaceChild(newBtn, confirmBtn);
@@ -1066,7 +1601,6 @@
                 content.appendChild(card);
             });
 
-            // ADD AI ANALYSIS SECTION ONLY IF API KEY EXISTS
             if (apiKey) {
                 const analysisDiv = document.createElement('div');
                 analysisDiv.id = "summary-analysis-controls"; 
@@ -1258,24 +1792,19 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-            // Configurar visibilidad IA según si hay Key guardada
             updateAIVisibility();
-
-            // Load saved state before rendering
             loadState();
-
-            // Sync UI switches with loaded state
+            
             const queueCheckbox = document.getElementById('queue-toggle');
             const walkCheckbox = document.getElementById('walk-toggle');
             if (queueCheckbox) queueCheckbox.checked = includeQueue;
             if (walkCheckbox) walkCheckbox.checked = includeWalk;
             
-            // Sync initial status text logic
             const statusText = document.getElementById('status-text');
             if(statusText) {
                 let parts = [];
                 if(includeWalk) parts.push("Caminatas");
-                if(includeQueue) parts.push("15 min de cola");
+                if(includeQueue) parts.push("Colas / Puertas");
                 if(parts.length === 0) statusText.innerText = "Sin restricciones";
                 else statusText.innerText = parts.join(" + ");
             }
